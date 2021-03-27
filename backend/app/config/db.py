@@ -1,22 +1,39 @@
 from sqlalchemy import (Column, DateTime, Integer,
-                        MetaData, Float, Text, Table, create_engine)
+                        Float, Text, Table, create_engine)
 from sqlalchemy.sql import func
-
+from sqlalchemy.dialects.postgresql import UUID
 from databases import Database
 from sqlalchemy.sql.schema import ForeignKey
 from sqlalchemy.sql.sqltypes import Boolean
+from fastapi_users.db import SQLAlchemyBaseUserTable, SQLAlchemyUserDatabase
+from fastapi_users import models
+from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
+from ..models.user import User
 
 """
     Add new tables here
 """
 
 
-DATABASE_URL = "postgresql://postgres:intel@localhost:5432/storage"
+DATABASE_URL = "postgresql://postgres:intel@localhost:5432/storage_dev"
 
 
-# SQLAlchemy
+#
+Base: DeclarativeMeta = declarative_base()
+
+
+class UserDB(User, models.BaseUserDB):
+    pass
+
+
+class UserTable(Base, SQLAlchemyBaseUserTable):
+    pass
+
+
 engine = create_engine(DATABASE_URL)
-metadata = MetaData()
+
+
+metadata = Base.metadata
 # Table creation
 
 # memes = Table(
@@ -30,24 +47,25 @@ metadata = MetaData()
 #     Index('uix_1', 'name', 'url', 'caption', unique=True),
 #     Index('uix_2', func.lower('name'), 'created_date'))
 
-user_states = Table(
-    "user_states", metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_state_type", Text, nullable=False))
+# user_states = Table(
+#     "user_states", metadata,
+#     Column("id", Integer, primary_key=True),
+#     Column("user_state_type", Text, nullable=False))
 
-users = Table(
-    "users", metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_state_id", Integer, ForeignKey("user_states.id"),
-           index=True, nullable=False),
-    Column("email", Text, nullable=False),
-    Column("password", Text, nullable=False),
-    Column("signup_date", DateTime, server_default=func.now(), nullable=False))
+# users = Table(
+#     "users", metadata,
+#     Column("id", Integer, primary_key=True),
+#     Column("user_state_id", Integer, ForeignKey("user_states.id"),
+#            index=True, nullable=False),
+#     Column("email", Text, nullable=False),
+#     Column("password", Text, nullable=False),
+#     Column("signup_date", DateTime, server_default=func.now(),
+#            nullable=False))
 
 user_space_configurations = Table(
     "user_space_configurations", metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("users.id"),
+    Column("user_id",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("single_file_upload_limit_GB", Float, default=16,
            nullable=True),  # nullable=True?
@@ -57,15 +75,16 @@ user_space_configurations = Table(
 # managers = Table(
 #     "managers", metadata,
 #     Column("id", Integer, primary_key=True),
-#     Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+#     Column("user_id",  UUID(as_uuid=True), ForeignKey("user.id"),
+#             nullable=False),
 #     Column("joining_date", DateTime, server_default=func.now(),
 #            nullable=False))
 
-admins = Table(
-    "admins", metadata,
-    Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("users.id"),
-           index=True, nullable=False))
+# admins = Table(
+#     "admins", metadata,
+#     Column("id", Integer, primary_key=True),
+#     Column("user_id",  UUID(as_uuid=True), ForeignKey("user.id"),
+#            index=True, nullable=False))
 
 # user_permissions = Table(
 #     "user_permissions", metadata,
@@ -90,7 +109,7 @@ folders = Table(
     "folders", metadata,
     Column("id", Integer, primary_key=True),
     Column("name", Text, nullable=False),
-    Column("created_by_user", Integer, ForeignKey("users.id"),
+    Column("created_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("created_on", DateTime, server_default=func.now(),
            nullable=False),
@@ -106,7 +125,7 @@ folders_inactive = Table(
     Column("id", Integer, primary_key=True),
     Column("folder_id", Integer, ForeignKey("folders.id"),
            index=True, nullable=False),
-    Column("inactive_by_user", Integer, ForeignKey("users.id"),
+    Column("inactive_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("inactive_on", DateTime, server_default=func.now(),
            nullable=False)
@@ -116,12 +135,12 @@ folders_deleted = Table(
     "folders_deleted", metadata,
     Column("id", Integer, primary_key=True),
     Column("name", Text, nullable=False),
-    Column("created_by_user", Integer, ForeignKey("users.id"),
+    Column("created_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("created_on", DateTime, nullable=True),  # nullable=True?
     Column("deleted_on", DateTime, server_default=func.now(),
            nullable=True),  # nullable=True?
-    Column("deleted_by_user", Integer, ForeignKey("users.id"),
+    Column("deleted_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("is_force_deleted", Boolean, nullable=False))
 
@@ -135,7 +154,7 @@ files = Table(
     "files", metadata,
     Column("id", Integer, primary_key=True),
     Column("name", Text, nullable=False),
-    Column("uploaded_by", Integer, ForeignKey("users.id"),
+    Column("uploaded_by",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("uploaded_on", DateTime, server_default=func.now(),
            nullable=False),
@@ -154,7 +173,7 @@ files_starred = Table(
     Column("id", Integer, primary_key=True),
     Column("file_id", Integer, ForeignKey("files.id"),
            index=True, nullable=False),
-    Column("starred_by", Integer, ForeignKey("users.id"),
+    Column("starred_by",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False))
 
 files_inactive = Table(
@@ -162,7 +181,7 @@ files_inactive = Table(
     Column("id", Integer, primary_key=True),
     Column("file_id", Integer, ForeignKey("files.id"),
            index=True, nullable=False),
-    Column("inactive_by_user", Integer, ForeignKey("users.id"),
+    Column("inactive_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("inactive_on", DateTime, server_default=func.now(),
            nullable=False)
@@ -172,7 +191,7 @@ files_deleted = Table(
     "files_deleted", metadata,
     Column("id", Integer, primary_key=True),
     Column("file_name", Text, nullable=False),
-    Column("uploaded_by_user", Integer, ForeignKey("users.id"),
+    Column("uploaded_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("uploaded_on", DateTime, nullable=True),  # nullable=True?
     Column("file_extension_id", Integer, ForeignKey("file_extensions.id"),
@@ -180,7 +199,7 @@ files_deleted = Table(
     Column("size_in_GB", Float, nullable=True),  # nullable=True?
     Column("deleted_on", DateTime, server_default=func.now(),
            nullable=True),  # nullable=True?
-    Column("deleted_by_user", Integer, ForeignKey("users.id"),
+    Column("deleted_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("is_force_deleted", Boolean, nullable=False))
 
@@ -210,7 +229,7 @@ team_member_roles = Table(
 team_members = Table(
     "team_members", metadata,
     Column("id", Integer, primary_key=True),
-    Column("user_id", Integer, ForeignKey("users.id"),
+    Column("user_id",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("team_id", Integer, ForeignKey("teams.id"),
            index=True, nullable=False),
@@ -236,7 +255,7 @@ team_folders = Table(
     Column("name", Text, nullable=False),
     Column("team_id", Integer, ForeignKey("teams.id"),
            index=True, nullable=False),
-    Column("created_by_user", Integer, ForeignKey("users.id"),
+    Column("created_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("created_on", DateTime, server_default=func.now(),
            nullable=False),
@@ -252,7 +271,7 @@ team_folders_inactive = Table(
     Column("id", Integer, primary_key=True),
     Column("team_folder_id", Integer, ForeignKey("team_folders.id"),
            index=True, nullable=False),
-    Column("inactive_by_user", Integer, ForeignKey("users.id"),
+    Column("inactive_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("inactive_on", DateTime, server_default=func.now(),
            nullable=False)
@@ -264,12 +283,12 @@ team_folders_deleted = Table(  # program and see
     Column("name", Text, nullable=False),
     Column("team_id", Integer, ForeignKey("teams.id"),
            index=True, nullable=False),
-    Column("created_by_user", Integer, ForeignKey("users.id"),
+    Column("created_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("created_on", DateTime, nullable=True),  # nullable=True?
     Column("deleted_on", DateTime, server_default=func.now(),
            nullable=True),  # nullable=True?
-    Column("deleted_by_user", Integer, ForeignKey("users.id"),
+    Column("deleted_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("is_force_deleted", Boolean, nullable=False))
 
@@ -279,7 +298,7 @@ team_files = Table(
     Column("team_id", Integer, ForeignKey("teams.id"),
            index=True, nullable=False),
     Column("name", Text, nullable=False),
-    Column("uploaded_by", Integer, ForeignKey("users.id"),
+    Column("uploaded_by",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("uploaded_on", DateTime, server_default=func.now(),
            nullable=False),
@@ -298,7 +317,7 @@ team_files_starred = Table(
     Column("id", Integer, primary_key=True),
     Column("team_file_id", Integer, ForeignKey("team_files.id"),
            index=True, nullable=False),
-    Column("starred_by", Integer, ForeignKey("users.id"),
+    Column("starred_by",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False))
 
 team_files_inactive = Table(
@@ -306,7 +325,7 @@ team_files_inactive = Table(
     Column("id", Integer, primary_key=True),
     Column("team_file_id", Integer, ForeignKey("team_files.id"),
            index=True, nullable=False),
-    Column("inactive_by_user", Integer, ForeignKey("users.id"),
+    Column("inactive_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
     Column("inactive_on", DateTime, server_default=func.now(),
            nullable=False)
@@ -318,7 +337,7 @@ team_files_deleted = Table(  # program and see
     Column("team_id", Integer, ForeignKey("teams.id"),
            index=True, nullable=False),
     Column("file_name", Text, nullable=False),
-    Column("uploaded_by_user", Integer, ForeignKey("users.id"),
+    Column("uploaded_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("uploaded_on", DateTime, nullable=True),  # nullable=True?
     Column("file_extension_id", Integer, ForeignKey("file_extensions.id"),
@@ -326,7 +345,7 @@ team_files_deleted = Table(  # program and see
     Column("size_in_GB", Float, nullable=True),  # nullable=True?
     Column("deleted_on", DateTime, server_default=func.now(),
            nullable=True),  # nullable=True?
-    Column("deleted_by_user", Integer, ForeignKey("users.id"),
+    Column("deleted_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("is_force_deleted", Boolean, nullable=False))
 
@@ -342,3 +361,5 @@ team_files_deleted = Table(  # program and see
 
 # databases query builder
 database = Database(DATABASE_URL)
+users = UserTable.__table__
+user_db = SQLAlchemyUserDatabase(UserDB, database, users)
