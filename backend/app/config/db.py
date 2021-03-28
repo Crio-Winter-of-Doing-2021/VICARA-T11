@@ -47,29 +47,29 @@ metadata = Base.metadata
 #     Index('uix_1', 'name', 'url', 'caption', unique=True),
 #     Index('uix_2', func.lower('name'), 'created_date'))
 
-# user_states = Table(
-#     "user_states", metadata,
-#     Column("id", Integer, primary_key=True),
-#     Column("user_state_type", Text, nullable=False))
+user_states = Table(
+    "user_states", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_state_type", Text, nullable=False))
 
-# users = Table(
-#     "users", metadata,
-#     Column("id", Integer, primary_key=True),
-#     Column("user_state_id", Integer, ForeignKey("user_states.id"),
-#            index=True, nullable=False),
-#     Column("email", Text, nullable=False),
-#     Column("password", Text, nullable=False),
-#     Column("signup_date", DateTime, server_default=func.now(),
-#            nullable=False))
+users = Table(
+    "users", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id",  UUID(as_uuid=True), ForeignKey("user.id"),
+           index=True, nullable=False),
+    Column("user_state_id", Integer, ForeignKey("user_states.id"),
+           index=True, nullable=False),
+    Column("signup_date", DateTime, server_default=func.now(),
+           nullable=False))
 
 user_space_configurations = Table(
     "user_space_configurations", metadata,
     Column("id", Integer, primary_key=True),
     Column("user_id",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=False),
-    Column("single_file_upload_limit_GB", Float, default=16,
+    Column("single_file_upload_limit_GB", Float, server_default="16",
            nullable=True),  # nullable=True?
-    Column("total_storage_limit_GB", Float, default=64,
+    Column("total_storage_limit_GB", Float, server_default="64",
            nullable=True))  # nullable=True?
 
 # managers = Table(
@@ -145,10 +145,10 @@ folders_deleted = Table(
     Column("is_force_deleted", Boolean, nullable=False))
 
 
-file_extensions = Table(
-    "file_extensions", metadata,
-    Column("id", Integer, primary_key=True),
-    Column("file_extension", Text, nullable=False))
+# file_extensions = Table(
+#     "file_extensions", metadata,
+#     Column("id", Integer, primary_key=True),
+#     Column("file_extension", Text, nullable=False))
 
 files = Table(
     "files", metadata,
@@ -158,9 +158,7 @@ files = Table(
            index=True, nullable=False),
     Column("uploaded_on", DateTime, server_default=func.now(),
            nullable=False),
-    Column("file_extension_id", Integer, ForeignKey("file_extensions.id"),
-           index=True, nullable=False),
-    Column("size_in_GB", Float, nullable=True),  # nullable=True?
+    Column("size_in_gb", Float, nullable=True),  # nullable=True?
     Column("parent_directory_id", Integer, ForeignKey("folders.id"),
            index=True, nullable=False),
     Column("file_state_id", Integer, ForeignKey("object_states.id"),
@@ -194,8 +192,6 @@ files_deleted = Table(
     Column("uploaded_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("uploaded_on", DateTime, nullable=True),  # nullable=True?
-    Column("file_extension_id", Integer, ForeignKey("file_extensions.id"),
-           index=True, nullable=False),
     Column("size_in_GB", Float, nullable=True),  # nullable=True?
     Column("deleted_on", DateTime, server_default=func.now(),
            nullable=True),  # nullable=True?
@@ -302,8 +298,6 @@ team_files = Table(
            index=True, nullable=False),
     Column("uploaded_on", DateTime, server_default=func.now(),
            nullable=False),
-    Column("file_extension_id", Integer, ForeignKey("file_extensions.id"),
-           index=True, nullable=False),
     Column("size_in_GB", Float, nullable=True),  # nullable=True?
     Column("parent_directory_id", Integer, ForeignKey("team_folders.id"),
            index=True, nullable=False),
@@ -340,8 +334,6 @@ team_files_deleted = Table(  # program and see
     Column("uploaded_by_user",  UUID(as_uuid=True), ForeignKey("user.id"),
            index=True, nullable=True),  # nullable=True?
     Column("uploaded_on", DateTime, nullable=True),  # nullable=True?
-    Column("file_extension_id", Integer, ForeignKey("file_extensions.id"),
-           index=True, nullable=False),
     Column("size_in_GB", Float, nullable=True),  # nullable=True?
     Column("deleted_on", DateTime, server_default=func.now(),
            nullable=True),  # nullable=True?
@@ -349,9 +341,22 @@ team_files_deleted = Table(  # program and see
            index=True, nullable=True),  # nullable=True?
     Column("is_force_deleted", Boolean, nullable=False))
 
-# aws_files = Table(
-#     "aws_files", metadata,
-#     )
+
+aws_files = Table(
+     "aws_files", metadata,
+     Column("id", Integer, primary_key=True),
+     Column("file_id", Integer, ForeignKey("files.id"),
+            index=True, nullable=False),
+     Column("aws_file_name", Text, unique=True, nullable=False),
+     )
+
+aws_team_files = Table(
+     "aws_team_files", metadata,
+     Column("id", Integer, primary_key=True),
+     Column("file_id", Integer, ForeignKey("team_files.id"),
+            index=True, nullable=False),
+     Column("aws_file_name", Text, unique=True, nullable=False),
+     )
 
 # share_links = Table(
 #     "share_links", metadata,
