@@ -20,7 +20,9 @@ def generate_presigned_url(object_key=None, expiry=3600):
                              )
     try:
         response = client.generate_presigned_url('get_object',
-                                                  Params={'Bucket': 'nathanbucket123','Key': object_key},
+                                                  Params={'Bucket': 'nathanbucket123',
+                                                  'Key': object_key, 
+                                                  "ResponseContentType": "image/jpeg"},
                                                   ExpiresIn=expiry)
         return response
     except ClientError as e:
