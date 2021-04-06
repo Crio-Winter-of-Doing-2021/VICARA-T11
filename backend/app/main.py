@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.params import Depends
-
+from fastapi.middleware.cors import CORSMiddleware
 from .queries.register import initializeUser
 from .auth import fastapi_users, jwt_authentication
 from .config.db import (database, engine, metadata, UserDB)
-from .routers import files
+from .routers import files, folders
 
 SECRET = "305cafbd0092e367476d9239aa27fcd7d623591fa65b4ae2026936040f45f36a"
 metadata.create_all(engine)
@@ -36,10 +36,8 @@ def after_verification_request(user: UserDB, token: str, request: Request):
         Verification token: {token}")
 
 
-
 app.include_router(
-    fastapi_users.get_auth_router(jwt_authentication,
-                                  requires_verification=True),
+    fastapi_users.get_auth_router(jwt_authentication),
     prefix="/auth/jwt", tags=["auth"]
 )
 app.include_router(
@@ -66,8 +64,11 @@ app.include_router(
 )
 
 app.include_router(files.router, prefix="/files", tags=["files"])
+app.include_router(folders.router, prefix="/folders", tags=["folders"])
 
-@app.get("/")
-async def read_main(user=Depends(fastapi_users.get_current_active_user)):
-    return {"msg": f"{user.email}" }
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
