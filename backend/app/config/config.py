@@ -1,0 +1,7 @@
+STORAGE_SERVICE = 'aws'
+SECRET = "305cafbd0092e367476d9239aa27fcd7d623591fa65b4ae2026936040f45f36a"
+REGION_NAME = ""
+AWS_ACCESS_KEY_ID = ""
+AWS_SECRET_ACESS_KEY = ""
+BUCKET = ""
+DATABASE_URL = "postgresql://postgres:intel@localhost:5432/new"

@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Request
-from fastapi_users.authentication import JWTAuthentication
-from fastapi_users import FastAPIUsers
-from .models.user import UserCreate, UserUpdate, User
-from .config.db import (database, engine, metadata,
-                        UserDB, user_db)
-
-
-SECRET = "305cafbd0092e367476d9239aa27fcd7d623591fa65b4ae2026936040f45f36a"
+from fastapi.params import Depends
+from fastapi.middleware.cors import CORSMiddleware
+from .queries.register import initializeUser
+from .auth import fastapi_users, jwt_authentication
+from .config.db import (database, engine, metadata, UserDB)
+from .routers import files, folders
+from .config.config import SECRET
 metadata.create_all(engine)
+
 app = FastAPI()
 
 
@@ -21,7 +21,8 @@ async def shutdown():
     await database.disconnect()
 
 
-def on_after_register(user: UserDB, request: Request):
+async def on_after_register(user: UserDB, request: Request):
+    await initializeUser(user.id)
     print(f"User {user.id} has registered.")
 
 
@@ -34,22 +35,8 @@ def after_verification_request(user: UserDB, token: str, request: Request):
         Verification token: {token}")
 
 
-jwt_authentication = JWTAuthentication(
-    secret=SECRET, lifetime_seconds=3600, tokenUrl="/auth/jwt/login"
-)
-
-
-fastapi_users = FastAPIUsers(
-    user_db,
-    [jwt_authentication],
-    User,
-    UserCreate,
-    UserUpdate,
-    UserDB,
-)
 app.include_router(
-    fastapi_users.get_auth_router(jwt_authentication,
-                                  requires_verification=True),
+    fastapi_users.get_auth_router(jwt_authentication),
     prefix="/auth/jwt", tags=["auth"]
 )
 app.include_router(
@@ -75,6 +62,12 @@ app.include_router(
     prefix="/users", tags=["users"]
 )
 
-@app.get("/")
-async def read_main():
-    return {"msg": "Hello World"}
+app.include_router(files.router, prefix="/files", tags=["files"])
+app.include_router(folders.router, prefix="/folders", tags=["folders"])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
